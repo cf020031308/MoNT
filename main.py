@@ -555,7 +555,7 @@ for run in range(args.runs):
                 break
     else:
         if args.method == 'NT':
-            from nt import NT
+            from mont import NT
             net = NT(n_features, n_labels, is_bidir=is_bidir, **args.__dict__)
         elif args.method == 'GAT':
             net = gnn.GAT(
