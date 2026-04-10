@@ -47,9 +47,3 @@ bash run_nt.sh
 
 ## Citation
 
-```bibtex
-@article{luomonophilic,
-  title={Monophilic Neighbourhood Transformers},
-  author={Luo, Yi and Sun, Xu and Luo, Guangchun and Chen, Aiguo}
-}
-```
