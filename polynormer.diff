@@ -1,0 +1,72 @@
+diff --git a/main.py b/main.py
+index 33bd556..b19958f 100644
+--- a/main.py
++++ b/main.py
+@@ -56,7 +56,6 @@ print(f"dataset {args.dataset} | num nodes {n} | num edge {e} | num node feats {
+ 
+ dataset.graph['edge_index'] = to_undirected(dataset.graph['edge_index'])
+ dataset.graph['edge_index'], _ = remove_self_loops(dataset.graph['edge_index'])
+-dataset.graph['edge_index'], _ = add_self_loops(dataset.graph['edge_index'], num_nodes=n)
+ 
+ dataset.graph['edge_index'], dataset.graph['node_feat'] = \
+     dataset.graph['edge_index'].to(device), dataset.graph['node_feat'].to(device)
+diff --git a/model.py b/model.py
+index 132f747..33f394a 100644
+--- a/model.py
++++ b/model.py
+@@ -1,6 +1,15 @@
+ import torch
+ import torch.nn.functional as F
+-from torch_geometric.nn import GATConv
++from mont import NTPLayer
++
++NTPLayer.reset_parameters = lambda self, *args, **kwargs: [
++    comp.reset_parameters() for comp in [
++        self.comb,
++        self.attn.to_q,
++        self.attn.to_k,
++        self.attn.to_v,
++        self.attn.to_out,
++    ]]
+ 
+ class GlobalAttn(torch.nn.Module):
+     def __init__(self, hidden_channels, heads, num_layers, beta, dropout, qk_shared=True):
+@@ -86,7 +95,7 @@ class GlobalAttn(torch.nn.Module):
+ 
+ class Polynormer(torch.nn.Module):
+     def __init__(self, in_channels, hidden_channels, out_channels, local_layers=3, global_layers=2,
+-            in_dropout=0.15, dropout=0.5, global_dropout=0.5, heads=1, beta=-1, pre_ln=False):
++            in_dropout=0.15, dropout=0.5, global_dropout=0.5, heads=1, beta=-1, pre_ln=False, agg='weightedmean'):
+         super(Polynormer, self).__init__()
+ 
+         self._global = False
+@@ -110,8 +119,7 @@ class Polynormer(torch.nn.Module):
+ 
+         for _ in range(local_layers):
+             self.h_lins.append(torch.nn.Linear(heads*hidden_channels, heads*hidden_channels))
+-            self.local_convs.append(GATConv(hidden_channels*heads, hidden_channels, heads=heads,
+-                concat=True, add_self_loops=False, bias=False))
++            self.local_convs.append(NTPLayer(hidden_channels*heads, hidden_channels*heads, heads=heads, agg=agg, dropout=dropout))
+             self.lins.append(torch.nn.Linear(heads*hidden_channels, heads*hidden_channels))
+             self.lns.append(torch.nn.LayerNorm(heads*hidden_channels))
+             if self.pre_ln:
+diff --git a/parse.py b/parse.py
+index 5c27ea0..fbdbeb4 100644
+--- a/parse.py
++++ b/parse.py
+@@ -3,12 +3,14 @@ from model import Polynormer
+ def parse_method(args, n, c, d, device):
+     model = Polynormer(d, args.hidden_channels, c, local_layers=args.local_layers, global_layers=args.global_layers,
+             in_dropout=args.in_dropout, dropout=args.dropout, global_dropout=args.global_dropout,
+-            heads=args.num_heads, beta=args.beta, pre_ln=args.pre_ln).to(device)
++            heads=args.num_heads, beta=args.beta, pre_ln=args.pre_ln, agg=args.agg).to(device)
+     return model
+ 
+ 
+ def parser_add_main_args(parser):
+     # dataset and evaluation
++    parser.add_argument('--agg', type=str, default='weightedmean')
++
+     parser.add_argument('--dataset', type=str, default='roman-empire')
+     parser.add_argument('--data_dir', type=str, default='./data/')
+     parser.add_argument('--device', type=int, default=0,

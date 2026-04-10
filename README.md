@@ -9,7 +9,9 @@ NT employs self-attention within every neighborhood of the graph to generate inf
 We develop a neighbourhood partitioning strategy equipped with switchable attentions, applying linear attention for efficiency and switching to full-rank attention for accuracy, with a shared set of model parameters.
 Experimental results on node classification tasks across 5 heterophilic and 5 homophilic graphs demonstrate that NT outperforms current state-of-the-art methods.
 
-## Node Classification Performance
+## Node Classification Performance (Comparing with MPNNs)
+
+Run [reproduce.sh](reproduce.sh) to reproduce the following results of NT:
 
 | Dataset          | Graph Type   | SotA method | SotA Accuracy | **NT Accuracy** |
 |------------------|--------------|-------------|---------------|-----------------|
@@ -24,8 +26,30 @@ Experimental results on node classification tasks across 5 heterophilic and 5 ho
 | Coauthor Physics | Homophilic   | GGCN        | 97.07         | **97.32**       |
 | WikiCS           | Homophilic   | OrderedGNN  | 79.01         | **80.04**       |
 
-## Reproducing SotA Results
+## Node Classification Performance (Comparing with GTs)
 
-See [reproduce.sh](reproduce.sh).
+We implement an enhanced version of NT to compare it against Graph Transformers.
+To reproduce these results, you need to:
+
+1. clone the code base from [Polynomrer](https://github.com/cornell-zhang/Polynormer)  
+```bash
+git clone https://github.com/cornell-zhang/Polynormer
+```
+2. replace the GATConv layer with our NT layer  
+```bash
+cp mont.py run_nt.sh polynormer.diff Polynormer/
+git apply polynormer.diff
+```
+3. and run [run_nt.sh](run_nt.sh) to reproduce the results  
+```bash
+bash run_nt.sh
+```
 
 ## Citation
+
+```bibtex
+@article{luomonophilic,
+  title={Monophilic Neighbourhood Transformers},
+  author={Luo, Yi and Sun, Xu and Luo, Guangchun and Chen, Aiguo}
+}
+```
